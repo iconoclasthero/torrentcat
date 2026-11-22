@@ -81,6 +81,20 @@ infohash v1   7039eca6d2d2aaf93b2b48cb16c52f2d1185a307
 infohash v2   2b0ce3980201393e3c2813275e28199b176d7c3256c22365781a4ce13dde9f9b
 ```
 
+### Summarise a torrent as JSON
+
+`-json` prints the same summary for scripts. `size` is the exact content size in bytes, padding files excluded; `-compact` makes it one line; `-a` adds a `file_list`.
+
+```
+$ bencat torrent -json -compact testdata/unsorted.torrent
+{"name":"outoforder","size":1048576,"files":1,"padding_files":0,"padding_bytes":0,"piece_length":262144,"pieces":4,"format":"v1","infohash_v1":"b53f2c0055cf7a2474fd34d98fd5e797eeec7861","private":false,"trackers":["http://t.example/a"],"web_seeds":[],"magnet":"magnet:?xt=urn:btih:b53f2c0055cf7a2474fd34d98fd5e797eeec7861&dn=outoforder&tr=http%3A%2F%2Ft.example%2Fa","warnings":[]}
+
+$ bencat torrent -json testdata/sample.torrent | jq .size
+736073537
+```
+
+Keys every torrent has are always present; `infohash_v2`, `created`, `created_by`, `comment` and `source` are omitted when the file has none. Empty lists are `[]`, never `null`. Names and paths are the same lossy text the text view shows (invalid UTF-8 becomes U+FFFD); use `bencat json` or `bencat get` for exact bytes.
+
 ### Look at the structure
 
 ```
@@ -174,7 +188,7 @@ Nothing on the network, and nothing on disk beyond the file you name. It will no
 ## Tests
 
 ```
-go test ./...              # 59 tests, 86 including subtests
+go test ./...              # 69 tests, 95 including subtests
 go test -fuzz=FuzzParse    # the parser, against arbitrary bytes
 ```
 
