@@ -47,6 +47,7 @@ examples:
   bencat ubuntu.torrent
   bencat torrent ubuntu.torrent
   bencat json ubuntu.torrent | jq '.info.name'
+  bencat torrent -json ubuntu.torrent | jq .size     # total size in bytes
   bencat get info ubuntu.torrent | sha1sum      # the infohash, the long way
   bencat check *.torrent
 
@@ -179,8 +180,17 @@ func (c *cli) torrent(args []string, magnetOnly bool) int {
 		name = "magnet"
 	}
 	fs := c.flags(name, "[file]")
-	all := fs.Bool("a", false, "list every file, not just the first 20")
+	all := fs.Bool("a", false, "list every file, not just the first 20 (with -json: include file_list)")
+	var asJSON, compact *bool
+	if !magnetOnly {
+		asJSON = fs.Bool("json", false, "print the summary as JSON instead of text")
+		compact = fs.Bool("compact", false, "with -json, one line, no indentation")
+	}
 	if err := fs.Parse(args); err != nil {
+		return exitUsage
+	}
+	if compact != nil && *compact && !*asJSON {
+		fmt.Fprintln(c.stderr, "bencat: -compact only applies with -json")
 		return exitUsage
 	}
 	doc, src, err := c.parse(fs)
@@ -193,6 +203,12 @@ func (c *cli) torrent(args []string, magnetOnly bool) int {
 	}
 	if magnetOnly {
 		fmt.Fprintln(c.stdout, t.Magnet())
+		return exitOK
+	}
+	if *asJSON {
+		if err := WriteTorrentJSON(c.stdout, t, TorrentJSONOpts{Compact: *compact, FileList: *all}); err != nil {
+			return c.fail("%v", err)
+		}
 		return exitOK
 	}
 	maxFiles := 20
